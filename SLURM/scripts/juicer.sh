@@ -468,7 +468,7 @@ fi
 jid=`sbatch <<- HEADER | egrep -o -e "\b[0-9]+$"
 	#!/bin/bash -l 
         $userstring
-	#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+	#SBATCH --nodes=1 --exclusive --partition=amd --time=96:00:00 --account=las --qos=las
 	#SBATCH -o $debugdir/head-%j.out
 	#SBATCH -e $debugdir/head-%j.err
 	#SBATCH -J "${groupname}_cmd"
@@ -535,7 +535,7 @@ then
                 then	
 		    jid=`sbatch <<- SPLITEND | egrep -o -e "\b[0-9]+$"
 			#!/bin/bash -l
-            #SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+            #SBATCH --nodes=1 --exclusive --partition=amd --time=96:00:00 --account=las --qos=las
 			#SBATCH -o $debugdir/split-%j.out
 			#SBATCH -e $debugdir/split-%j.err
 			#SBATCH -J "${groupname}_split_${i}"
@@ -548,7 +548,7 @@ SPLITEND`
 		else
 		    jid=`sbatch <<- SPLITEND | egrep -o -e "\b[0-9]+$"
 			#!/bin/bash -l
-			#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+			#SBATCH --nodes=1 --exclusive --partition=amd --time=96:00:00 --account=las --qos=las
 			#SBATCH -o $debugdir/split-%j.out
 			#SBATCH -e $debugdir/split-%j.err
 			#SBATCH -J "${groupname}_split_${i}"
@@ -615,7 +615,7 @@ SPLITEND`
 	# count ligations
 	jid=`sbatch <<- CNTLIG |  egrep -o -e "\b[0-9]+$"
 		#!/bin/bash -l
-		#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+		#SBATCH --nodes=1 --partition=amd --exclusive --time=96:00:00 --account=las --qos=las
 		#SBATCH -o $debugdir/count_ligation-%j.out
 		#SBATCH -e $debugdir/count_ligation-%j.err
 		#SBATCH -J "${groupname}_${jname}_Count_Ligation"
@@ -632,7 +632,7 @@ CNTLIG`
 	    # align fastqs
 	    jid=`sbatch <<- ALGNR1 | egrep -o -e "\b[0-9]+$"
 		#!/bin/bash -l
-		#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+		#SBATCH --nodes=1 --partition=amd --exclusive --time=96:00:00 --account=las --qos=las
 		#SBATCH -o $debugdir/align1-%j.out
 		#SBATCH -e $debugdir/align1-%j.err
 		#SBATCH -J "${groupname}_align1_${jname}"
@@ -681,12 +681,11 @@ ALGNR1`
 	# wait for alignment, chimeric read handling
 	jid=`sbatch <<- MRGALL | egrep -o -e "\b[0-9]+$"
 		#!/bin/bash -l
-		#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+		#SBATCH --nodes=1 --exclusive --time=96:00:00 --partition=amd --account=las --qos=las
 		#SBATCH -o $debugdir/merge-%j.out
 		#SBATCH -e $debugdir/merge-%j.err
 		#SBATCH -d $dependalign
 		#SBATCH -J "${groupname}_merge_${jname}"
-                #SBATCH --threads-per-core=1
                 $userstring
 		${load_awk}
 		date
@@ -755,7 +754,7 @@ MRGALL`
 		#!/bin/bash -l
 		#SBATCH -o $debugdir/aligncheck-%j.out
 		#SBATCH -e $debugdir/aligncheck-%j.err
-		#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+		#SBATCH --nodes=1 --exclusive --time=96:00:00 --partition=amd --account=las --qos=las
 		#SBATCH -J "${groupname}_check"
 		#SBATCH -d $dependmerge
                 $userstring			
@@ -866,7 +865,7 @@ then
     # After dedup is done, this job will be released. 
     guardjid=`sbatch <<- DEDUPGUARD | egrep -o -e "\b[0-9]+$"
 	#!/bin/bash -l
-	#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+	#SBATCH --nodes=1 --exclusive --partition=amd --time=96:00:00 --account=las --qos=las
 	#SBATCH -o $debugdir/dedupguard-%j.out
 	#SBATCH -e $debugdir/dedupguard-%j.err
 	#SBATCH -J "${groupname}_dedup_guard"
@@ -881,7 +880,7 @@ DEDUPGUARD`
     # if jobs succeeded, kill the cleanup job, remove the duplicates from the big sorted file
     jid=`sbatch <<- DEDUP | egrep -o -e "\b[0-9]+$"
 	#!/bin/bash -l
-	#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+	#SBATCH --nodes=1 --exclusive --partition=amd --time=96:00:00 --account=las --qos=las
 	#SBATCH -o $debugdir/dedup-%j.out
 	#SBATCH -e $debugdir/dedup-%j.err
 	#SBATCH -J "${groupname}_dedup"
@@ -914,7 +913,7 @@ DEDUP`
     #Wait for all parts of split_rmdups to complete:
     jid=`sbatch <<- MSPLITWAIT | egrep -o -e "\b[0-9]+$"
 	#!/bin/bash -l
-	#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+	#SBATCH --nodes=1 --exclusive --partition=amd --time=96:00:00 --account=las --qos=las
 	#SBATCH -o $debugdir/post_dedup-%j.out
 	#SBATCH -e $debugdir/post_dedup-%j.err
 	#SBATCH -J "${groupname}_post_dedup"
@@ -948,7 +947,7 @@ if [ -z $postproc ]
     awkscript='BEGIN{sscriptname = sprintf("%s/.%s_rmsplit.slurm", debugdir, groupname);}NR==1{if (NF == 2 && $1 == $2 ){print "Sorted and dups/no dups files add up"; printf("#!/bin/bash -l\n#SBATCH -o %s/dup-rm.out\n#SBATCH -e %s/dup-rm.err\n#SBATCH -p %s\n#SBATCH -J %s_msplit0\n#SBATCH -d singleton\n#SBATCH -t 96:00:00\n#SBATCH -c 1\n#SBATCH --ntasks=1\ndate;\nrm %s/*_msplit*_optdups.txt; rm %s/*_msplit*_dups.txt; rm %s/*_msplit*_merged_nodups.txt;rm %s/split*;\ndate\n", debugdir, debugdir, queue, groupname, dir, dir, dir, dir) > sscriptname; sysstring = sprintf("sbatch %s", sscriptname); system(sysstring);close(sscriptname); }else{print "Problem"; print "***! Error! The sorted file and dups/no dups files do not add up, or were empty."}}'
     jid=`sbatch <<- DUPCHECK | egrep -o -e "\b[0-9]+$"
 	#!/bin/bash -l
-	#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+	#SBATCH --nodes=1 --partition=amd --exclusive --time=96:00:00 --account=las --qos=las
 	#SBATCH -o $debugdir/dupcheck-%j.out
 	#SBATCH -e $debugdir/dupcheck-%j.err
 	#SBATCH -J "${groupname}_dupcheck"
@@ -965,7 +964,7 @@ DUPCHECK`
 
     jid=`sbatch <<- PRESTATS | egrep -o -e "\b[0-9]+$"
 	#!/bin/bash -l
-	#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+	#SBATCH --nodes=1 --partition=amd --exclusive --time=96:00:00 --account=las --qos=las
 	#SBATCH -o $debugdir/prestats-%j.out
 	#SBATCH -e $debugdir/prestats-%j.err
 	#SBATCH -J "${groupname}_prestats"
@@ -987,7 +986,7 @@ PRESTATS`
     sbatch_wait0="#SBATCH -d afterok:$jid"
     jid=`sbatch <<- STATS | egrep -o -e "\b[0-9]+$"
 		#!/bin/bash -l
-		#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+		#SBATCH --nodes=1 --partition=amd --exclusive --time=96:00:00 --account=las --qos=las
 		#SBATCH -o $debugdir/stats-%j.out
 		#SBATCH -e $debugdir/stats-%j.err
 		#SBATCH -J "${groupname}_stats"
@@ -1009,7 +1008,7 @@ STATS`
     dependstats="afterok:$jid"
     jid=`sbatch <<- STATS30 | egrep -o -e "\b[0-9]+$"
 		#!/bin/bash -l
-		#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+		#SBATCH --nodes=1 --partition=amd --exclusive --time=96:00:00 --account=las --qos=las
 		#SBATCH -o $debugdir/stats30-%j.out
 		#SBATCH -e $debugdir/stats30-%j.err
 		#SBATCH -J "${groupname}_stats"
@@ -1025,7 +1024,7 @@ STATS30`
     # This job is waiting on deduping, thus sbatch_wait (vs sbatch_wait0 or 1) 
     jid=`sbatch <<- CONCATFILES | egrep -o -e "\b[0-9]+$"
 		#!/bin/bash -l
-		#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+		#SBATCH --nodes=1 --partition=amd --exclusive --time=96:00:00 --account=las --qos=las
 		#SBATCH -o $debugdir/stats30-%j.out
 		#SBATCH -e $debugdir/stats30-%j.err
 		#SBATCH -J "${groupname}_stats"
@@ -1046,7 +1045,7 @@ CONCATFILES`
     then
 	jid=`sbatch <<- FINCLN1 | egrep -o -e "\b[0-9]+$" 
 	#!/bin/bash -l
-	#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+	#SBATCH --nodes=1 --partition=amd --exclusive --time=96:00:00 --account=las --qos=las
 	#SBATCH -o $debugdir/fincln1-%j.out
 	#SBATCH -e $debugdir/fincln1-%j.err
 	#SBATCH -J "${groupname}_prep_done"     
@@ -1065,7 +1064,7 @@ FINCLN1`
     
     jid=`sbatch <<- HIC | egrep -o -e "\b[0-9]+$"
 	#!/bin/bash -l
-	#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+	#SBATCH --nodes=1 --partition=amd --exclusive --time=96:00:00 --account=las --qos=las
 	#SBATCH -o $debugdir/hic-%j.out
 	#SBATCH -e $debugdir/hic-%j.err	
 	#SBATCH -J "${groupname}_hic"
@@ -1095,7 +1094,7 @@ HIC`
 
     jid=`sbatch <<- HIC30 | egrep -o -e "\b[0-9]+$"
 	#!/bin/bash -l
-	#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+	#SBATCH --nodes=1 --partition=amd --exclusive --time=96:00:00 --account=las --qos=las
 	#SBATCH -o $debugdir/hic30-%j.out
 	#SBATCH -e $debugdir/hic30-%j.err
 	#SBATCH -J "${groupname}_hic30"
@@ -1134,7 +1133,7 @@ then
     fi
     jid=`sbatch <<- HICCUPS | egrep -o -e "\b[0-9]+$"
 	#!/bin/bash -l
-	#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+	#SBATCH --nodes=1 --partition=amd --exclusive --time=96:00:00 --account=las --qos=las
 	${sbatch_req}
 	#SBATCH -o $debugdir/hiccups_wrap-%j.out
 	#SBATCH -e $debugdir/hiccups_wrap-%j.err
@@ -1162,7 +1161,7 @@ fi
 
 jid=`sbatch <<- ARROWS | egrep -o -e "\b[0-9]+$"
 	#!/bin/bash -l
-	#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+	#SBATCH --nodes=1 --partition=amd --exclusive --time=96:00:00 --account=las --qos=las
 	#SBATCH -o $debugdir/arrowhead_wrap-%j.out
 	#SBATCH -e $debugdir/arrowhead_wrap-%j.err
 	#SBATCH -J "${groupname}_arrowhead_wrap"
@@ -1183,7 +1182,7 @@ dependarrows="${dependhiccups}:$jid"
 
 jid=`sbatch <<- FINCLN1 | egrep -o -e "\b[0-9]+$"
 	#!/bin/bash -l
-	#SBATCH --nodes=1 --exclusive --time=96:00:00 --account=las --qos=las
+	#SBATCH --nodes=1 --partition=amd --exclusive --time=96:00:00 --account=las --qos=las
 	#SBATCH -o $debugdir/fincln-%j.out
 	#SBATCH -e $debugdir/fincln-%j.err
 	#SBATCH -J "${groupname}_prep_done"
