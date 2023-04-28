@@ -109,24 +109,24 @@ juicer_version="1.6"
     long_queue="mhgcp"
     long_queue_time="3600"
 #else
-    isVoltron=1
-    #export PATH=/gpfs0/biobuild/biobuilds-2016.11/bin:$PATH 
-    # unset MALLOC_ARENA_MAX # on IBM platform this parameter has significant speed efect but may result in memory leaks
-    load_bwa="spack load bwa@0.7.17 arch=\`spack arch\`"
-    load_awk="spack load gawk@4.1.4 arch=\`spack arch\`"
-    load_gpu="spack load cuda@8.0.61 arch=\`spack arch\` && CUDA_VISIBLE_DEVICES=0,1,2,3"
-    call_gem="/gpfs0/work/neva/gem3-mapper/bin/gem-mapper --3c"
-    # Juicer directory, contains scripts/, references/, and restriction_sites/
-    # can also be set in options via -D
-    juiceDir="/gpfs0/juicer/"
-    # default queue, can also be set in options
-    queue="commons"
-    queue_time="2880"
-    # default long queue, can also be set in options
-    long_queue="long"
-    long_queue_time="7200"
+#    isVoltron=1
+#    #export PATH=/gpfs0/biobuild/biobuilds-2016.11/bin:$PATH 
+#    # unset MALLOC_ARENA_MAX # on IBM platform this parameter has significant speed efect but may result in memory leaks
+#    load_bwa="module load bwa"
+#    load_gpu="spack load cuda@8.0.61 arch=\`spack arch\` && CUDA_VISIBLE_DEVICES=0,1,2,3"
+#    call_gem="/gpfs0/work/neva/gem3-mapper/bin/gem-mapper --3c"
+#    # Juicer directory, contains scripts/, references/, and restriction_sites/
+#    # can also be set in options via -D
+#    juiceDir="/gpfs0/juicer/"
+#    # default queue, can also be set in options
+#    queue="commons"
+#    queue_time="2880"
+#    # default long queue, can also be set in options
+#    long_queue="long"
+#    long_queue_time="7200"
 #fi
-
+load_bwa="module load bwa"
+load_java="module load openjdk"
 # size to split fastqs. adjust to match your needs. 4000000=1M reads per split
 # can also be changed via the -C flag
 splitsize=2071811352
@@ -458,7 +458,7 @@ cat > header.sub <<"HEADER"
 	
 	echo "$0 $@"
 HEADER
-
+sed -i "s/^[ \t]*//" header.sub
 jid=$(sbatch --parsable header.sub)
 headfile="${debugdir}/head-${jid}.out"
 
@@ -512,6 +512,7 @@ then
 				split -a 3 -l $splitsize -d --additional-suffix=.fastq $i $splitdir/$filename
 				date
 SPLITEND
+sed -i "s/^[ \t]*//" splitend-A_${i}.sub
 jid=$(sbatch --parsable splitend-A_${i}.sub)
 		else
 		    cat > splitend-B_${i}.sub <<"SPLITEND"
@@ -531,6 +532,7 @@ jid=$(sbatch --parsable splitend-A_${i}.sub)
 			zcat $i | split -a 3 -l $splitsize -d --additional-suffix=.fastq - $splitdir/$filename
 			date
 SPLITEND
+sed -i "s/^[ \t]*//" splitend-B_${i}.sub
 jid=$(sbatch --parsable splitend-B_${i}.sub)
 		fi
 		dependsplit="$dependsplit:$jid"
@@ -609,6 +611,7 @@ jid=$(sbatch --parsable splitend-B_${i}.sub)
 		${juiceDir}/scripts/countligations.sh
 		echo 'end $(date)'
 CNTLIG
+	sed -i "s/^[ \t]*//" countLigation.sub
 	dependcount=$(sbatch --parsable countLigation.sub)
 
 	if [ -z "$chimeric" ]
@@ -650,7 +653,8 @@ CNTLIG
 		fi
 		date
 ALGNR1
-
+		sed -i "s/^[ \t]*//" aligner.sub
+		jid=$(sbatch --parsable aligner.sub)
 	    dependalign="afterok:$jid:$dependcount"
 	else
 	    dependalign="afterok:$dependcount"
@@ -712,6 +716,7 @@ sortthreadstring="--parallel=$threads"
 		touch $touchfile
 		date
 MRGALL
+	sed -i "s/^[ \t]*//" mergeall.sub
 	jid=$(sbatch --parsable mergeall.sub)
 	dependmerge="${dependmerge}:${jid}"
 	ARRAY[countjobs]="${groupname}_merge_${jname}"
@@ -750,6 +755,7 @@ MRGALL
 		fi
 		date
 EOF1
+	sed -i "s/^[ \t]*//" checkAlign.sub
 	jid=$(sbatch --parsable checkAlign.sub)
 	dependmergecheck="${dependmerge}:${jid}"
     done
@@ -816,6 +822,7 @@ then
 		fi
 		date
 MRGSRT
+	sed -i "s/^[ \t]*//" merge_sort.sub
     jid=$(sbatch --parsable merge_sort.sub)
     dependmrgsrt="afterok:$jid"
 fi
@@ -846,6 +853,7 @@ then
 	${sbatch_wait}
 	date
 DEDUPGUARD
+	sed -i "s/^[ \t]*//" dedup_guard.sub
 	gaurdjobid=$(sbatch --parsable dedup_guard.sub)
     dependguard="afterok:$guardjid"
 
@@ -881,6 +889,7 @@ DEDUPGUARD
 	
 	scontrol release $guardjid
 DEDUP
+	sed -i "s/^[ \t]*//" dedup.sub
 	jid=$(sbatch --parsable dedup.sub)
     dependosplit="afterok:$jid"
 
@@ -908,6 +917,7 @@ DEDUP
 	squeue -u $USER -o "%A %T %j %E %R" | column -t
 	date
 POSTDEDUP
+	sed -i "s/^[ \t]*//" post_dedup.sub
 	jid=$(sbatch --parsable post_dedup.sub)
     dependmsplit="afterok:$jid"
     sbatch_wait="#SBATCH -d $dependmsplit"
@@ -947,6 +957,7 @@ if [ -z $postproc ]
 	awk -v debugdir=$debugdir -v queue=$queue -v groupname=$groupname -v dir=$outputdir '$awkscript' $debugdir/dupcheck-${groupname}
         date                                                                                                           
 DEDUPCHECK
+	sed -i "s/^[ \t]*//" dupcheck_1.sub
 	jid=$(sbatch --parsable dupcheck_1.sub)
     sbatch_wait="#SBATCH -d afterok:$jid"
 
@@ -975,6 +986,7 @@ DEDUPCHECK
         cp $outputdir/inter.txt $outputdir/inter_30.txt                                                       
         date
 PRESTATS
+	sed -i "s/^[ \t]*//" prestats_1.sub
 	jid=$(sbatch --parsable prestats_1.sub)
     sbatch_wait0="#SBATCH -d afterok:$jid"
 	cat > stats_1.sub <<STATS
@@ -1001,6 +1013,7 @@ PRESTATS
 
 		date
 STATS
+	sed -i "s/^[ \t]*//" stats_1.sub
 	jid=$(sbatch --parsable stats_1.sub)
     sbatch_wait1="#SBATCH -d afterok:$jid"
 
@@ -1021,6 +1034,7 @@ STATS
 		perl ${juiceDir}/scripts/statistics.pl -s $site_file -l $ligation -o $outputdir/inter_30.txt -q 30 $outputdir/merged_nodups.txt
 		date
 STATS30
+	sed -i "s/^[ \t]*//" stats30_1.sub
 	jid=$(sbatch --parsable stats30_1.sub)
     dependstats30="afterok:$jid"
     sbatch_wait1="${sbatch_wait1}:$jid"
@@ -1046,6 +1060,7 @@ STATS30
 		gawk -v fname=$outputdir/collisions.txt -f ${juiceDir}/scripts/collisions_dedup_rearrange_cols.awk $outputdir/collisions.txt | sort -k3,3n -k4,4n -k10,10n -k11,11n -k17,17n -k18,18n -k24,24n -k25,25n -k31,31n -k32,32n | awk -v name=$outputdir/ -f ${juiceDir}/scripts/collisions_dups.awk
 		date
 POSTSTATS
+	sed -i "s/^[ \t]*//" poststats_1.sub
 	jid=$(sbatch --parsable poststats_1.sub)
     # if early exit, we stop here, once the stats are calculated
     if [ ! -z "$earlyexit" ]
@@ -1070,6 +1085,7 @@ POSTSTATS
 	${juiceDir}/scripts/check.sh
 	date
 FINCLN1
+	sed -i "s/^[ \t]*//" fincln_1.sub
 	jid=$(sbatch --parsable fincln_1.sub)
 	echo "(-: Finished adding all jobs... Now is a good time to get that cup of coffee... Last job id $jid"
 	exit 0
@@ -1103,6 +1119,7 @@ FINCLN1
 	fi
 	date
 HIC
+	sed -i "s/^[ \t]*//" hic_1.sub
     jid=$(sbatch --parsable hic_1.sub)
     dependhic="afterok:$jid"
 
@@ -1135,6 +1152,7 @@ HIC
 	fi
 	date
 HIC30
+	sed -i "s/^[ \t]*//" hic30_1.sub
     jid=$(sbatch --parsable hic30_1.sub)
     dependhic30="${dependhic}:$jid"
     sbatch_wait="#SBATCH -d $dependhic30"
@@ -1174,6 +1192,7 @@ then
 	${juiceDir}/scripts/juicer_hiccups.sh -j ${juiceDir}/scripts/juicer_tools -i $outputdir/inter_30.hic -m ${juiceDir}/references/motif -g $genomeID
 	date
 HICCUPS
+	sed -i "s/^[ \t]*//" hiccups_wrap.sub
 	jid=$(sbatch --parsable hiccups_wrap.sub)
     dependhiccups="afterok:$jid"
 else
@@ -1201,6 +1220,7 @@ fi
 	${juiceDir}/scripts/juicer_arrowhead.sh -j ${juiceDir}/scripts/juicer_tools -i $outputdir/inter_30.hic
 	date;
 ARROWS
+sed -i "s/^[ \t]*//" arrows_2.sub
 jid=$(sbatch --parsable arrows_2.sub)
 dependarrows="${dependhiccups}:$jid"
 	cat > fincln_2.sub <<- FINCLN2
@@ -1221,5 +1241,6 @@ dependarrows="${dependhiccups}:$jid"
 	${juiceDir}/scripts/check.sh
 	date
 FINCLN2
+sed -i "s/^[ \t]*//" fincln_2.sub
 jid=$(sbatch --parsable fincln_2.sub)
 echo "(-: Finished adding all jobs... Now is a good time to get that cup of coffee... Last job id $jid"
