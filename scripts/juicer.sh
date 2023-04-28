@@ -485,13 +485,16 @@ then
     ## sending it to the cluster	
     dependsplit="afterok"
     if [ ! $splitdirexists ]
-    then
+	then
 	echo "(-: Created $splitdir and $outputdir."
-	if [ -n "$splitme" ] then
-	for i in ${fastqdir} do
+	if [ -n "$splitme" ]
+	then
+	for i in ${fastqdir}
+	do
 	filename=$(basename $i)
 	filename=${filename%.*}      
-                if [ -z "$gzipped" ] then
+                if [ -z "$gzipped" ]
+				then
 				cat > splitend-A_${i}.sub <<"SPLITEND"
 				#!/bin/bash -l
 				#SBATCH --nodes=1 
