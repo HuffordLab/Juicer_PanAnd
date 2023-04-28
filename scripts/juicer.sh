@@ -421,7 +421,7 @@ userstring="#SBATCH -A las"
 
 # Add header containing command executed and timestamp:
 
-cat > header.sub <<HEADER
+cat > header_001.slurm <<HEADER
 	#!/bin/bash -l 
 	#SBATCH --nodes=1 
 	#SBATCH --exclusive 
@@ -458,8 +458,8 @@ cat > header.sub <<HEADER
 	
 	echo "$0 $@"
 HEADER
-sed -i "s/^[ \t]*//" header.sub
-jid=$(sbatch --parsable header.sub)
+sed -i "s/^[ \t]*//" header_001.slurm
+jid=$(sbatch --parsable header_001.slurm)
 headfile="${debugdir}/head-${jid}.out"
 
 ## Record if we failed while aligning, so we don't waste time on other jobs
@@ -495,7 +495,7 @@ then
 	filename=${filename%.*}      
                 if [ -z "$gzipped" ]
 				then
-				cat > splitend-A_${i}.sub <<SPLITEND
+				cat > splitend-A_${i}_002A.slurm <<SPLITEND
 				#!/bin/bash -l
 				#SBATCH --nodes=1 
 				#SBATCH --exclusive 
@@ -511,10 +511,10 @@ then
 				split -a 3 -l $splitsize -d --additional-suffix=.fastq $i $splitdir/$filename
 				date
 SPLITEND
-sed -i "s/^[ \t]*//" splitend-A_${i}.sub
-jid=$(sbatch --parsable splitend-A_${i}.sub)
+sed -i "s/^[ \t]*//" splitend-A_${i}_002A.slurm
+jid=$(sbatch --parsable splitend-A_${i}_002A.slurm)
 		else
-		    cat > splitend-B_${i}.sub <<SPLITEND
+		    cat > splitend-B_${i}_002B.slurm <<SPLITEND
 			#!/bin/bash -l
 			#SBATCH --nodes=1 
 			#SBATCH --exclusive 
@@ -530,8 +530,8 @@ jid=$(sbatch --parsable splitend-A_${i}.sub)
 			zcat $i | split -a 3 -l $splitsize -d --additional-suffix=.fastq - $splitdir/$filename
 			date
 SPLITEND
-sed -i "s/^[ \t]*//" splitend-B_${i}.sub
-jid=$(sbatch --parsable splitend-B_${i}.sub)
+sed -i "s/^[ \t]*//" splitend-B_${i}_002B.slurm
+jid=$(sbatch --parsable splitend-B_${i}_002B.slurm)
 		fi
 		dependsplit="$dependsplit:$jid"
                 # if we split files, the splits are named .fastq
@@ -588,7 +588,7 @@ jid=$(sbatch --parsable splitend-B_${i}.sub)
 	touchfile=${tmpdir}/${jname}
 
 	# count ligations
-	cat > countLigation.sub <<CNTLIG
+	cat > countLigation_003.slurm <<CNTLIG
 		#!/bin/bash -l
 		#SBATCH --nodes=1 
 		#SBATCH --exclusive 
@@ -609,13 +609,13 @@ jid=$(sbatch --parsable splitend-B_${i}.sub)
 		${juiceDir}/scripts/countligations.sh
 		echo 'end $(date)'
 CNTLIG
-	sed -i "s/^[ \t]*//" countLigation.sub
-	dependcount=$(sbatch --parsable countLigation.sub)
+	sed -i "s/^[ \t]*//" countLigation_003.slurm
+	dependcount=$(sbatch --parsable countLigation_003.slurm)
 
 	if [ -z "$chimeric" ]
 	then
 	    # align fastqs
-		cat > aligner.sub <<ALGNR1
+		cat > aligner_004.slurm <<ALGNR1
 		#!/bin/bash -l
 		#SBATCH --nodes=1 
 		#SBATCH --exclusive 
@@ -651,8 +651,8 @@ CNTLIG
 		fi
 		date
 ALGNR1
-		sed -i "s/^[ \t]*//" aligner.sub
-		jid=$(sbatch --parsable aligner.sub)
+		sed -i "s/^[ \t]*//" aligner_004.slurm
+		jid=$(sbatch --parsable aligner_004.slurm)
 	    dependalign="afterok:$jid:$dependcount"
 	else
 	    dependalign="afterok:$dependcount"
@@ -660,7 +660,7 @@ ALGNR1
 
 sortthreadstring="--parallel=$threads"
 	# wait for alignment, chimeric read handling
-	cat > mergeall.sub <<MRGALL
+	cat > mergeall_005.slurm <<MRGALL
 		#!/bin/bash -l
 		#SBATCH --nodes=1 
 		#SBATCH --exclusive 
@@ -712,8 +712,8 @@ sortthreadstring="--parallel=$threads"
 		touch $touchfile
 		date
 MRGALL
-	sed -i "s/^[ \t]*//" mergeall.sub
-	jid=$(sbatch --parsable mergeall.sub)
+	sed -i "s/^[ \t]*//" mergeall_005.slurm
+	jid=$(sbatch --parsable mergeall_005.slurm)
 	dependmerge="${dependmerge}:${jid}"
 	ARRAY[countjobs]="${groupname}_merge_${jname}"
 	JIDS[countjobs]="${jid}"
@@ -728,7 +728,7 @@ MRGALL
 	msg="***! Error in job ${ARRAY[$i]}  Type squeue -j ${JIDS[$i]} to see what happened"
 	
 	# check that alignment finished successfully
-		cat > checkAlign.sub <<EOF1
+		cat > checkAlign_006.slurm <<EOF1
 		#!/bin/bash -l
 		#SBATCH --nodes=1 
 		#SBATCH --exclusive 
@@ -749,8 +749,8 @@ MRGALL
 		fi
 		date
 EOF1
-	sed -i "s/^[ \t]*//" checkAlign.sub
-	jid=$(sbatch --parsable checkAlign.sub)
+	sed -i "s/^[ \t]*//" checkAlign_006.slurm
+	jid=$(sbatch --parsable checkAlign_006.slurm)
 	dependmergecheck="${dependmerge}:${jid}"
     done
 fi  # Not in merge, dedup,  or final stage, i.e. need to split and align files.
@@ -771,7 +771,7 @@ then
 	sbatch_mem_alloc=${sbatch_cpu_alloc}
 
 
-    cat > merge_sort.sub <<MRGSRT
+    cat > merge_sort_007.slurm <<MRGSRT
 		#!/bin/bash -l
 		#SBATCH -o $debugdir/fragmerge-%j.out
 		#SBATCH -e $debugdir/fragmerge-%j.err
@@ -814,8 +814,8 @@ then
 		fi
 		date
 MRGSRT
-	sed -i "s/^[ \t]*//" merge_sort.sub
-    jid=$(sbatch --parsable merge_sort.sub)
+	sed -i "s/^[ \t]*//" merge_sort_007.slurm
+    jid=$(sbatch --parsable merge_sort_007.slurm)
     dependmrgsrt="afterok:$jid"
 fi
 
@@ -831,7 +831,7 @@ then
     # Guard job for dedup. this job is a placeholder to hold any job submitted after dedup.
     # We keep the ID of this guard, so we can later alter dependencies of inner dedupping phase.
     # After dedup is done, this job will be released. 
-    cat > dedup_guard.sub <<DEDUPGUARD
+    cat > dedup_guard_008.slurm <<DEDUPGUARD
 	#!/bin/bash -l
 	#SBATCH --nodes=1 
 	#SBATCH --partition=amd
@@ -845,12 +845,12 @@ then
 	${sbatch_wait}
 	date
 DEDUPGUARD
-	sed -i "s/^[ \t]*//" dedup_guard.sub
-	gaurdjobid=$(sbatch --parsable dedup_guard.sub)
+	sed -i "s/^[ \t]*//" dedup_guard_008.slurm
+	gaurdjobid=$(sbatch --parsable dedup_guard_008.slurm)
     dependguard="afterok:$guardjid"
 
     # if jobs succeeded, kill the cleanup job, remove the duplicates from the big sorted file
-    cat > dedup.sub <<DEDUP
+    cat > dedup_009.slurm <<DEDUP
 	#!/bin/bash -l
 	#SBATCH --nodes=1 
 	#SBATCH --partition=amd
@@ -878,15 +878,15 @@ DEDUPGUARD
 	
 	scontrol release $guardjid
 DEDUP
-	sed -i "s/^[ \t]*//" dedup.sub
-	jid=$(sbatch --parsable dedup.sub)
+	sed -i "s/^[ \t]*//" dedup_009.slurm
+	jid=$(sbatch --parsable dedup_009.slurm)
     dependosplit="afterok:$jid"
 
     #Push dedup guard to run only after dedup is complete:
     scontrol update JobID=$guardjid dependency=afterok:$jid
 
     #Wait for all parts of split_rmdups to complete:
-	cat > post_dedup.sub <<POSTDEDUP
+	cat > post_dedup_010.slurm <<POSTDEDUP
 	#!/bin/bash -l
 	#SBATCH --nodes=1 
 	#SBATCH --partition=amd
@@ -904,8 +904,8 @@ DEDUP
 	squeue -u $USER -o "%A %T %j %E %R" | column -t
 	date
 POSTDEDUP
-	sed -i "s/^[ \t]*//" post_dedup.sub
-	jid=$(sbatch --parsable post_dedup.sub)
+	sed -i "s/^[ \t]*//" post_dedup_010.slurm
+	jid=$(sbatch --parsable post_dedup_010.slurm)
     dependmsplit="afterok:$jid"
     sbatch_wait="#SBATCH -d $dependmsplit"
 else
@@ -924,7 +924,7 @@ if [ -z $postproc ]
     # Check that dedupping worked properly
     # in ideal world, we would check this in split_rmdups and not remove before we know they are correct
     awkscript='BEGIN{sscriptname = sprintf("%s/.%s_rmsplit.slurm", debugdir, groupname);}NR==1{if (NF == 2 && $1 == $2 ){print "Sorted and dups/no dups files add up"; printf("#!/bin/bash -l\n#SBATCH -o %s/dup-rm.out\n#SBATCH -e %s/dup-rm.err\n#SBATCH -p %s\n#SBATCH -J %s_msplit0\n#SBATCH -d singleton\n#SBATCH -t 96:00:00\n#SBATCH -c 1\n#SBATCH --ntasks=1\ndate;\nrm %s/*_msplit*_optdups.txt; rm %s/*_msplit*_dups.txt; rm %s/*_msplit*_merged_nodups.txt;rm %s/split*;\ndate\n", debugdir, debugdir, queue, groupname, dir, dir, dir, dir) > sscriptname; sysstring = sprintf("sbatch %s", sscriptname); system(sysstring);close(sscriptname); }else{print "Problem"; print "***! Error! The sorted file and dups/no dups files do not add up, or were empty."}}'
-	cat > dupcheck_1.sub <<DEDUPCHECK
+	cat > dupcheck_1_011.slurm <<DEDUPCHECK
 	#!/bin/bash -l
 	#SBATCH --nodes=1 
 	#SBATCH --partition=amd
@@ -942,11 +942,11 @@ if [ -z $postproc ]
 	awk -v debugdir=$debugdir -v queue=$queue -v groupname=$groupname -v dir=$outputdir '$awkscript' $debugdir/dupcheck-${groupname}
         date                                                                                                           
 DEDUPCHECK
-	sed -i "s/^[ \t]*//" dupcheck_1.sub
-	jid=$(sbatch --parsable dupcheck_1.sub)
+	sed -i "s/^[ \t]*//" dupcheck_1_011.slurm
+	jid=$(sbatch --parsable dupcheck_1_011.slurm)
     sbatch_wait="#SBATCH -d afterok:$jid"
 
-    cat > prestats_1.sub <<PRESTATS
+    cat > prestats_1_012.slurm <<PRESTATS
 	#!/bin/bash -l
 	#SBATCH --nodes=1 
 	#SBATCH --partition=amd
@@ -969,10 +969,10 @@ DEDUPCHECK
         cp $outputdir/inter.txt $outputdir/inter_30.txt                                                       
         date
 PRESTATS
-	sed -i "s/^[ \t]*//" prestats_1.sub
-	jid=$(sbatch --parsable prestats_1.sub)
+	sed -i "s/^[ \t]*//" prestats_1_012.slurm
+	jid=$(sbatch --parsable prestats_1_012.slurm)
     sbatch_wait0="#SBATCH -d afterok:$jid"
-	cat > stats_1.sub <<STATS
+	cat > stats_1_013.slurm <<STATS
 		#!/bin/bash -l
 		#SBATCH --nodes=1 
 		#SBATCH --partition=amd
@@ -994,12 +994,12 @@ PRESTATS
 
 		date
 STATS
-	sed -i "s/^[ \t]*//" stats_1.sub
-	jid=$(sbatch --parsable stats_1.sub)
+	sed -i "s/^[ \t]*//" stats_1_013.slurm
+	jid=$(sbatch --parsable stats_1_013.slurm)
     sbatch_wait1="#SBATCH -d afterok:$jid"
 
     dependstats="afterok:$jid"
-	cat > stats30_1.sub <<STATS30
+	cat > stats30_1_014.slurm <<STATS30
 		#!/bin/bash -l
 		#SBATCH --nodes=1 
 		#SBATCH --partition=amd
@@ -1014,12 +1014,12 @@ STATS
 		perl ${juiceDir}/scripts/statistics.pl -s $site_file -l $ligation -o $outputdir/inter_30.txt -q 30 $outputdir/merged_nodups.txt
 		date
 STATS30
-	sed -i "s/^[ \t]*//" stats30_1.sub
-	jid=$(sbatch --parsable stats30_1.sub)
+	sed -i "s/^[ \t]*//" stats30_1_014.slurm
+	jid=$(sbatch --parsable stats30_1_014.slurm)
     dependstats30="afterok:$jid"
     sbatch_wait1="${sbatch_wait1}:$jid"
     # This job is waiting on deduping, thus sbatch_wait (vs sbatch_wait0 or 1) 
-		cat > poststats_1.sub <<POSTSTATS
+		cat > poststats_1_015.slurm <<POSTSTATS
 		#!/bin/bash -l
 		#SBATCH --nodes=1 
 		#SBATCH --partition=amd
@@ -1039,12 +1039,12 @@ STATS30
 		gawk -v fname=$outputdir/collisions.txt -f ${juiceDir}/scripts/collisions_dedup_rearrange_cols.awk $outputdir/collisions.txt | sort -k3,3n -k4,4n -k10,10n -k11,11n -k17,17n -k18,18n -k24,24n -k25,25n -k31,31n -k32,32n | awk -v name=$outputdir/ -f ${juiceDir}/scripts/collisions_dups.awk
 		date
 POSTSTATS
-	sed -i "s/^[ \t]*//" poststats_1.sub
-	jid=$(sbatch --parsable poststats_1.sub)
+	sed -i "s/^[ \t]*//" poststats_1_015.slurm
+	jid=$(sbatch --parsable poststats_1_015.slurm)
     # if early exit, we stop here, once the stats are calculated
     if [ ! -z "$earlyexit" ]
     then
-	cat > fincln_1.sub <<- FINCLN1
+	cat > fincln_1_016.slurm <<- FINCLN1
 	#!/bin/bash -l
 	#SBATCH --nodes=1 
 	#SBATCH --partition=amd
@@ -1064,12 +1064,12 @@ POSTSTATS
 	${juiceDir}/scripts/check.sh
 	date
 FINCLN1
-	sed -i "s/^[ \t]*//" fincln_1.sub
-	jid=$(sbatch --parsable fincln_1.sub)
+	sed -i "s/^[ \t]*//" fincln_1_016.slurm
+	jid=$(sbatch --parsable fincln_1_016.slurm)
 	echo "(-: Finished adding all jobs... Now is a good time to get that cup of coffee... Last job id $jid"
 	exit 0
     fi
-    cat > hic_1.sub <<- HIC
+    cat > hic_1_017.slurm <<- HIC
  	#!/bin/bash -l
 	#SBATCH --nodes=1 
 	#SBATCH --partition=amd
@@ -1098,11 +1098,11 @@ FINCLN1
 	fi
 	date
 HIC
-	sed -i "s/^[ \t]*//" hic_1.sub
-    jid=$(sbatch --parsable hic_1.sub)
+	sed -i "s/^[ \t]*//" hic_1_017.slurm
+    jid=$(sbatch --parsable hic_1_017.slurm)
     dependhic="afterok:$jid"
 
-	cat > hic30_1.sub <<- HIC30
+	cat > hic30_1_018.slurm <<- HIC30
 	#!/bin/bash -l
 	#SBATCH --nodes=1 
 	#SBATCH --partition=amd
@@ -1131,8 +1131,8 @@ HIC
 	fi
 	date
 HIC30
-	sed -i "s/^[ \t]*//" hic30_1.sub
-    jid=$(sbatch --parsable hic30_1.sub)
+	sed -i "s/^[ \t]*//" hic30_1_018.slurm
+    jid=$(sbatch --parsable hic30_1_018.slurm)
     dependhic30="${dependhic}:$jid"
     sbatch_wait="#SBATCH -d $dependhic30"
 else
@@ -1145,7 +1145,7 @@ then
     then
 	sbatch_req="#SBATCH --gres=gpu:kepler:1"
     fi
-	cat > hiccups_wrap.sub <<- HICCUPS
+	cat > hiccups_wrap_019.slurm <<- HICCUPS
 	#!/bin/bash -l
 	#SBATCH --nodes=1 
 	#SBATCH --partition=amd
@@ -1171,13 +1171,13 @@ then
 	${juiceDir}/scripts/juicer_hiccups.sh -j ${juiceDir}/scripts/juicer_tools -i $outputdir/inter_30.hic -m ${juiceDir}/references/motif -g $genomeID
 	date
 HICCUPS
-	sed -i "s/^[ \t]*//" hiccups_wrap.sub
-	jid=$(sbatch --parsable hiccups_wrap.sub)
+	sed -i "s/^[ \t]*//" hiccups_wrap_019.slurm
+	jid=$(sbatch --parsable hiccups_wrap_019.slurm)
     dependhiccups="afterok:$jid"
 else
     dependhiccups="afterok"
 fi
-	cat	> arrows_2.sub <<- ARROWS 
+	cat	> arrows_2_020.slurm <<- ARROWS 
 	#!/bin/bash -l
 	#SBATCH --nodes=1 
 	#SBATCH --partition=amd
@@ -1199,10 +1199,10 @@ fi
 	${juiceDir}/scripts/juicer_arrowhead.sh -j ${juiceDir}/scripts/juicer_tools -i $outputdir/inter_30.hic
 	date;
 ARROWS
-sed -i "s/^[ \t]*//" arrows_2.sub
-jid=$(sbatch --parsable arrows_2.sub)
+sed -i "s/^[ \t]*//" arrows_2_020.slurm
+jid=$(sbatch --parsable arrows_2_020.slurm)
 dependarrows="${dependhiccups}:$jid"
-	cat > fincln_2.sub <<- FINCLN2
+	cat > fincln_2_021.slurm <<- FINCLN2
 	#!/bin/bash -l
 	#SBATCH --nodes=1 
 	#SBATCH --partition=amd
@@ -1220,6 +1220,6 @@ dependarrows="${dependhiccups}:$jid"
 	${juiceDir}/scripts/check.sh
 	date
 FINCLN2
-sed -i "s/^[ \t]*//" fincln_2.sub
-jid=$(sbatch --parsable fincln_2.sub)
+sed -i "s/^[ \t]*//" fincln_2_021.slurm
+jid=$(sbatch --parsable fincln_2_021.slurm)
 echo "(-: Finished adding all jobs... Now is a good time to get that cup of coffee... Last job id $jid"
