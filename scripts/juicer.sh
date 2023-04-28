@@ -629,11 +629,12 @@ CNTLIG
 		module load bwa
 		# Align reads
 		date
-                if [ \$gemmapper ]; then
+        if [ \$gemmapper ]
+			then
 			echo "Running command $call_gem $re -I ${refSeq%.*}.gem $threadstring -1 $name1$ext -2 $name2$ext -o $name$ext.sam"
-			echo "srun --nodes=1 --exclusive --partition=amd --account=las --qos=las $call_gem $re -I ${refSeq%.*}.gem $threadstring -1 $name1$ext -2 $name2$ext -o $name$ext.sam" 
+			$call_gem $re -I ${refSeq%.*}.gem $threadstring -1 $name1$ext -2 $name2$ext -o $name$ext.sam 
 			if [ \$? -ne 0 ]
-			then  
+				then  
 				touch $errorfile
 				exit 1
 			else
@@ -641,9 +642,9 @@ CNTLIG
 			fi
 		else
 			echo "Running command bwa mem -SP5M $threadstring $refSeq $name1$ext $name2$ext > $name$ext.sam" 
-			echo "srun --nodes=1 --partition=amd --exclusive --account=las --qos=las  bwa mem -SP5M $threadstring $refSeq $name1$ext $name2$ext > $name$ext.sam" 
+			bwa mem -SP5M $threadstring $refSeq $name1$ext $name2$ext > $name$ext.sam 
 			if [ \$? -ne 0 ]
-			then  
+				then  
 				touch $errorfile
 				exit 1
 			else
