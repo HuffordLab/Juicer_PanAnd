@@ -506,7 +506,6 @@ then
 				#SBATCH -o $debugdir/split-%j.out
 				#SBATCH -e $debugdir/split-%j.err
 				#SBATCH -J "${groupname}_split_${i}"
-                $userstring			
 				date
 				echo "Split file: $filename"
 				split -a 3 -l $splitsize -d --additional-suffix=.fastq $i $splitdir/$filename
@@ -526,7 +525,6 @@ jid=$(sbatch --parsable splitend-A_${i}.sub)
 			#SBATCH -o $debugdir/split-%j.out
 			#SBATCH -e $debugdir/split-%j.err
 			#SBATCH -J "${groupname}_split_${i}"
-                        $userstring			
 			date
 			echo "Split file: $filename"
 			zcat $i | split -a 3 -l $splitsize -d --additional-suffix=.fastq - $splitdir/$filename
@@ -674,8 +672,6 @@ sortthreadstring="--parallel=$threads"
 		#SBATCH -e $debugdir/merge-%j.err
 		#SBATCH -d $dependalign
 		#SBATCH -J "${groupname}_merge_${jname}"
-                $userstring
-		${load_awk}
 		date
 		touch ${name}${ext}_abnorm.sam ${name}${ext}_unmapped.sam ${name}${ext}_norm.txt
 		awk -v "fname1"=${name}${ext}_norm.txt -v "fname2"=${name}${ext}_abnorm.sam -v "fname3"=${name}${ext}_unmapped.sam -f $juiceDir/scripts/chimeric_blacklist.awk ${name}${ext}.sam
@@ -744,8 +740,6 @@ MRGALL
 		#SBATCH -e $debugdir/aligncheck-%j.err
 		#SBATCH -J "${groupname}_check"
 		#SBATCH -d $dependmerge
-                $userstring			
-
 		date
 		echo "Checking $f"
 		if [ ! -e $f ]
@@ -787,8 +781,6 @@ then
 		${sbatch_cpu_alloc}
 		#SBATCH -J "${groupname}_fragmerge"
 		${sbatch_wait}
-                $userstring			
-
 		date
 		if [ -f "${errorfile}" ]
 		then
@@ -870,9 +862,6 @@ DEDUPGUARD
 	#SBATCH -e $debugdir/dedup-%j.err
 	#SBATCH -J "${groupname}_dedup"
 	${sbatch_wait}
-        $userstring
-	
-	${load_awk}
 	date
         if [ -f "${errorfile}" ]
         then 
@@ -909,8 +898,6 @@ DEDUP
 	#SBATCH -e $debugdir/post_dedup-%j.err
 	#SBATCH -J "${groupname}_post_dedup"
 	#SBATCH -d ${dependguard}
-        $userstring			
-
 	date
 	rm -Rf $tmpdir;
 	find $debugdir -type f -size 0 | xargs rm
@@ -949,8 +936,6 @@ if [ -z $postproc ]
 	#SBATCH -e $debugdir/dupcheck-%j.err
 	#SBATCH -J "${groupname}_dupcheck"
 	${sbatch_wait}
-        $userstring			
-	${load_awk}
 	date      
 	ls -l ${outputdir}/merged_sort.txt | awk '{printf("%s ", \\\$5)}' > $debugdir/dupcheck-${groupname}
 	ls -l ${outputdir}/merged_nodups.txt ${outputdir}/dups.txt ${outputdir}/opt_dups.txt | awk '{sum = sum + \\\$5}END{print sum}' >> $debugdir/dupcheck-${groupname}
@@ -973,12 +958,10 @@ DEDUPCHECK
 	#SBATCH -e $debugdir/prestats-%j.err
 	#SBATCH -J "${groupname}_prestats"
 	${sbatch_wait}
-	$userstring
-	${load_awk}
         date
-        ${load_java}
-        export IBM_JAVA_OPTIONS="-Xmx1024m -Xgcthreads1"                                                                                                         
-        export _JAVA_OPTIONS="-Xmx1024m -Xms1024m"                                                                                                              
+        ml openjdk
+        export IBM_JAVA_OPTIONS="-Xmx100g -Xgcthreads4"                                                                                                         
+        export _JAVA_OPTIONS="-Xmx100g -Xms10g"                                                                                                              
         
         tail -n1 $headfile | awk '{printf"%-1000s\n", \\\$0}' > $outputdir/inter.txt                                                                              
         cat $splitdir/*.res.txt | awk -f ${juiceDir}/scripts/stats_sub.awk >> $outputdir/inter.txt                                                                
@@ -1001,8 +984,6 @@ PRESTATS
 		#SBATCH -e $debugdir/stats-%j.err
 		#SBATCH -J "${groupname}_stats"
 		${sbatch_wait0}
-                $userstring			
-
 		date
 		if [ -f "${errorfile}" ]
 		then 
@@ -1030,7 +1011,6 @@ STATS
 		#SBATCH -e $debugdir/stats30-%j.err
 		#SBATCH -J "${groupname}_stats"
 		${sbatch_wait0}
-
 		perl ${juiceDir}/scripts/statistics.pl -s $site_file -l $ligation -o $outputdir/inter_30.txt -q 30 $outputdir/merged_nodups.txt
 		date
 STATS30
@@ -1051,7 +1031,6 @@ STATS30
 		#SBATCH -e $debugdir/stats30-%j.err
 		#SBATCH -J "${groupname}_stats"
 		${sbatch_wait}
-		${load_awk}
 		cat $splitdir/*_abnorm.sam > $outputdir/abnormal.sam
 		cat $splitdir/*_unmapped.sam > $outputdir/unmapped.sam
 		# collect collisions and dedup them
