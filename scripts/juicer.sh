@@ -421,7 +421,7 @@ userstring="#SBATCH -A las"
 
 # Add header containing command executed and timestamp:
 
-cat > header.sub <<"HEADER"
+cat > header.sub <<HEADER
 	#!/bin/bash -l 
 	#SBATCH --nodes=1 
 	#SBATCH --exclusive 
@@ -495,7 +495,7 @@ then
 	filename=${filename%.*}      
                 if [ -z "$gzipped" ]
 				then
-				cat > splitend-A_${i}.sub <<"SPLITEND"
+				cat > splitend-A_${i}.sub <<SPLITEND
 				#!/bin/bash -l
 				#SBATCH --nodes=1 
 				#SBATCH --exclusive 
@@ -514,7 +514,7 @@ SPLITEND
 sed -i "s/^[ \t]*//" splitend-A_${i}.sub
 jid=$(sbatch --parsable splitend-A_${i}.sub)
 		else
-		    cat > splitend-B_${i}.sub <<"SPLITEND"
+		    cat > splitend-B_${i}.sub <<SPLITEND
 			#!/bin/bash -l
 			#SBATCH --nodes=1 
 			#SBATCH --exclusive 
@@ -588,7 +588,7 @@ jid=$(sbatch --parsable splitend-B_${i}.sub)
 	touchfile=${tmpdir}/${jname}
 
 	# count ligations
-	cat > countLigation.sub <<"CNTLIG"
+	cat > countLigation.sub <<CNTLIG
 		#!/bin/bash -l
 		#SBATCH --nodes=1 
 		#SBATCH --exclusive 
@@ -615,7 +615,7 @@ CNTLIG
 	if [ -z "$chimeric" ]
 	then
 	    # align fastqs
-		cat > aligner.sub <<"ALGNR1"
+		cat > aligner.sub <<ALGNR1
 		#!/bin/bash -l
 		#SBATCH --nodes=1 
 		#SBATCH --exclusive 
@@ -660,7 +660,7 @@ ALGNR1
 
 sortthreadstring="--parallel=$threads"
 	# wait for alignment, chimeric read handling
-	cat > mergeall.sub <<"MRGALL"
+	cat > mergeall.sub <<MRGALL
 		#!/bin/bash -l
 		#SBATCH --nodes=1 
 		#SBATCH --exclusive 
@@ -728,7 +728,7 @@ MRGALL
 	msg="***! Error in job ${ARRAY[$i]}  Type squeue -j ${JIDS[$i]} to see what happened"
 	
 	# check that alignment finished successfully
-		cat > checkAlign.sub <<"EOF1"
+		cat > checkAlign.sub <<EOF1
 		#!/bin/bash -l
 		#SBATCH --nodes=1 
 		#SBATCH --exclusive 
@@ -771,7 +771,7 @@ then
 	sbatch_mem_alloc=${sbatch_cpu_alloc}
 
 
-    cat > merge_sort.sub <<"MRGSRT"
+    cat > merge_sort.sub <<MRGSRT
 		#!/bin/bash -l
 		#SBATCH -o $debugdir/fragmerge-%j.out
 		#SBATCH -e $debugdir/fragmerge-%j.err
@@ -831,7 +831,7 @@ then
     # Guard job for dedup. this job is a placeholder to hold any job submitted after dedup.
     # We keep the ID of this guard, so we can later alter dependencies of inner dedupping phase.
     # After dedup is done, this job will be released. 
-    cat > dedup_guard.sub <<"DEDUPGUARD"
+    cat > dedup_guard.sub <<DEDUPGUARD
 	#!/bin/bash -l
 	#SBATCH --nodes=1 
 	#SBATCH --partition=amd
@@ -850,7 +850,7 @@ DEDUPGUARD
     dependguard="afterok:$guardjid"
 
     # if jobs succeeded, kill the cleanup job, remove the duplicates from the big sorted file
-    cat > dedup.sub <<"DEDUP"
+    cat > dedup.sub <<DEDUP
 	#!/bin/bash -l
 	#SBATCH --nodes=1 
 	#SBATCH --partition=amd
