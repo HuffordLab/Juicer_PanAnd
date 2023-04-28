@@ -775,15 +775,18 @@ then
 
     cat > merge_sort_007.slurm <<MRGSRT
 		#!/bin/bash -l
+		#SBATCH --nodes=1 
+		#SBATCH --partition=amd
+		#SBATCH --exclusive 
+		#SBATCH --time=96:00:00 
+		#SBATCH --account=las 
+		#SBATCH --qos=las
 		#SBATCH -o $debugdir/fragmerge-%j.out
 		#SBATCH -e $debugdir/fragmerge-%j.err
-		${sbatch_mem_alloc}
-		${sbatch_time}
-		#SBATCH -p $long_queue
-		${sbatch_cpu_alloc}
 		#SBATCH -J "${groupname}_fragmerge"
 		${sbatch_wait}
 		date
+		memory=$(free -g | awk 'NR==2 {print $4"G"}')
 		if [ -f "${errorfile}" ]
 		then
 			echo "***! Found errorfile. Exiting." 
@@ -794,25 +797,13 @@ then
 		then
 			mv $donesplitdir/* $splitdir/.
 		fi
-		if [ $isRice -eq 1 ]
+		if ! sort --parallel=${SLURM_CPUS_ON_NODE} -S ${memory} -T ${TMPDIR} -m -k2,2d -k6,6d -k4,4n -k8,8n -k1,1n -k5,5n -k3,3n $splitdir/*.sort.txt > $outputdir/merged_sort.txt
 		then
-			if ! ${juiceDir}/scripts/sort --parallel=48 -S 32G -T ${tmpdir} -m -k2,2d -k6,6d -k4,4n -k8,8n -k1,1n -k5,5n -k3,3n $splitdir/*.sort.txt > $outputdir/merged_sort.txt
-			then
-				echo "***! Some problems occurred somewhere in creating sorted align files."
-				touch $errorfile
-				exit 1
-			else
-				echo "(-: Finished sorting all sorted files into a single merge."
-			fi
+			echo "***! Some problems occurred somewhere in creating sorted align files."
+			touch $errorfile
+			exit 1
 		else
-			if ! sort --parallel=48 -S 32G -T ${tmpdir} -m -k2,2d -k6,6d -k4,4n -k8,8n -k1,1n -k5,5n -k3,3n $splitdir/*.sort.txt > $outputdir/merged_sort.txt
-			then
-				echo "***! Some problems occurred somewhere in creating sorted align files."
-				touch $errorfile
-				exit 1
-			else
-				echo "(-: Finished sorting all sorted files into a single merge."
-			fi
+			echo "(-: Finished sorting all sorted files into a single merge."
 		fi
 		date
 MRGSRT
