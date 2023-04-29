@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # setting up variables
 read1=$1
 read2=$2
@@ -44,8 +43,6 @@ tmpdir="${juiceDir}/HIC_tmp"
 
 #need to change this to be more flexible
 baseoutname=$(basename ${read1} |cut -f1 -d "_")
-guardjid=""
-sortthreadstring="-t ${threads}
 
 # header script
 cat > head.sh << EOF
@@ -89,19 +86,7 @@ sort --parallel=${threads} \
 cp ${splitdir}/${ext}_${baseoutname}.sort.txt ${outputdir}/merged_sort.txt
 
 # split_rmdups
-awk -v queue="amd" \ 
-    -v groupname=${groupname} \
-    -v debugdir=${debugdir} \
-    -v dir=${outputdir} \
-    -v topDir=${topDir} \
-    -v juicedir=${juiceDir} \
-    -v site=${site} \
-    -v genomeID=${genomeID} \
-    -v genomePath=${genomePath} \
-    -v user=las \
-    -v guardjid=4450589 \
-    -v justexact=0 -f ${juiceDir}/scripts/split_rmdups.awk ${outputdir}/merged_sort.txt
-
+awk -v groupname=${groupname} -v debugdir=${debugdir} -v topDir=${topDir} -v juicedir=${juiceDir} -v site=${site} -v genomeID=${genomeID} -v genomePath=${genomePath} -v justexact=0 -f ${juiceDir}/scripts/split_rmdups.awk ${outputdir}/merged_sort.txt
 
 # prestats
 tail -n1 ${headfile} | awk '{printf"%-1000s\n", $0}' > ${outputdir}/inter.txt

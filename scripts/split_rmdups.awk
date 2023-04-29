@@ -71,14 +71,14 @@ END {
     system(sysstring);
     close(sscriptname);
     sscriptname = sprintf("%s/.%s_finalize.slurm", debugdir, groupname);
-    printf("echo %s %s %s %s; \nsqueue -u %s; \ndate \n", topDir, site, genomeID, genomePath, user) > sscriptname;
+    printf("echo %s %s %s %s;\n", topDir, site, genomeID, genomePath) > sscriptname;
     sysstring = sprintf("cat %s", sscriptname);
     system(sysstring);
     sysstring = sprintf("echo JobID=NONE dependency=afterany:NONE");
     system(sysstring);
     close(sscriptname);
     sscriptname = sprintf("%s/.%s_mail.slurm", debugdir, groupname);
-    printf("echo %s %s %s %s | mail -r arnstrm@gmail.com -s \"Juicer pipeline finished successfully @ Voltron\" -t %s@hi-c.io;\n", topDir, site, genomeID, genomePath, user) > sscriptname;
+    printf("echo %s %s %s %s\n", topDir, site, genomeID, genomePath) > sscriptname;
     sysstring = sprintf("cat %s", sscriptname);
     system(sysstring);
     close(sscriptname);
