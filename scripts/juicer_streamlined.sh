@@ -105,13 +105,22 @@ awk -v queue="amd" \
 
 # prestats
 tail -n1 ${headfile} | awk '{printf"%-1000s\n", \$0}' > ${outputdir}/inter.txt
-cat ${splitdir}/*.res.txt | awk -f ${juiceDir}/scripts/stats_sub.awk >> ${outputdir}/inter.txt
+cat ${splitdir}/*.res.txt |\
+    awk -f ${juiceDir}/scripts/stats_sub.awk >> ${outputdir}/inter.txt
 ${juiceDir}/scripts/juicer_tools LibraryComplexity ${outputdir} inter.txt >> ${outputdir}/inter.txt
 cp ${outputdir}/inter.txt ${outputdir}/inter_30.txt
 
 
-perl ${juiceDir}/scripts/statistics.pl -s ${site_file} -l ${ligation} -o ${outputdir}/inter.txt -q 1 ${outputdir}/merged_nodups.txt
-perl ${juiceDir}/scripts/statistics.pl -s ${site_file} -l ${ligation} -o ${outputdir}/inter_30.txt -q 30 ${outputdir}/merged_nodups.txt
+perl ${juiceDir}/scripts/statistics.pl \
+    -s ${site_file} \
+    -l ${ligation} \
+    -o ${outputdir}/inter.txt \
+    -q 1 ${outputdir}/merged_nodups.txt
+perl ${juiceDir}/scripts/statistics.pl \
+    -s ${site_file} \
+    -l ${ligation} \
+    -o ${outputdir}/inter_30.txt \
+    -q 30 ${outputdir}/merged_nodups.txt
 
 #collect collisions and dedup
 awk -f ${juiceDir}/scripts/collisions.awk ${outputdir}/abnormal.sam > ${outputdir}/collisions.txt
