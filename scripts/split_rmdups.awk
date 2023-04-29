@@ -60,8 +60,7 @@ END {
 	printf("#!/bin/bash -l \n#SBATCH --nodes=1 --exclusive --partition=amd --time=96:00:00 --account=las --qos=las \n#SBATCH -o %s/dup-split-%s.out \n#SBATCH -e %s/dup-split-%s.err \n#SBATCH -J %s_msplit0 \ndate;awk -f %s/scripts/dups.awk -v nowobble=1 -v name=%s/%s %s/split%04d; \necho Reads:%s \ndate \n", debugdir, name, debugdir, name, groupname, juicedir, dir, sname, dir, name, tot) > sscriptname;
     }
     else {
-	printf("#!/bin/bash -l \n#SBATCH --nodes=1 --exclusive --partition=amd --time=96:00:00 --account=las --qos=las \n
-            #SBATCH -o %s/dup-split-%s.out \n#SBATCH -e %s/dup-split-%s.err \n#SBATCH -J %s_msplit0 \ndate;awk -f %s/scripts/dups.awk -v name=%s/%s %s/split%04d; \necho Reads:%s \ndate \n", debugdir, name, debugdir, name, groupname, juicedir, dir, sname, dir, name, tot) > sscriptname;
+	printf("#!/bin/bash -l \n#SBATCH --nodes=1 --exclusive --partition=amd --time=96:00:00 --account=las --qos=las \n#SBATCH -o %s/dup-split-%s.out \n#SBATCH -e %s/dup-split-%s.err \n#SBATCH -J %s_msplit0 \ndate;awk -f %s/scripts/dups.awk -v name=%s/%s %s/split%04d; \necho Reads:%s \ndate \n", debugdir, name, debugdir, name, groupname, juicedir, dir, sname, dir, name, tot) > sscriptname;
     }
     sysstring = sprintf("sbatch %s", sscriptname);
     system(sysstring);
