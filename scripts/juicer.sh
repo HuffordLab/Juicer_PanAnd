@@ -839,7 +839,7 @@ then
 	date
 DEDUPGUARD
 	sed -i "s/^[ \t]*//" dedup_guard_008.slurm
-	gaurdjobid=$(sbatch --parsable dedup_guard_008.slurm)
+	guardjid=$(sbatch --parsable dedup_guard_008.slurm)
     dependguard="afterok:$guardjid"
 
     # if jobs succeeded, kill the cleanup job, remove the duplicates from the big sorted file
