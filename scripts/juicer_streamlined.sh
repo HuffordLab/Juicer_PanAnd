@@ -104,7 +104,7 @@ awk -v queue="amd" \
 
 
 # prestats
-tail -n1 ${headfile} | awk '{printf"%-1000s\n", \$0}' > ${outputdir}/inter.txt
+tail -n1 ${headfile} | awk '{printf"%-1000s\n", $0}' > ${outputdir}/inter.txt
 cat ${splitdir}/*.res.txt |\
     awk -f ${juiceDir}/scripts/stats_sub.awk >> ${outputdir}/inter.txt
 ${juiceDir}/scripts/juicer_tools LibraryComplexity ${outputdir} inter.txt >> ${outputdir}/inter.txt
@@ -116,6 +116,7 @@ perl ${juiceDir}/scripts/statistics.pl \
     -l ${ligation} \
     -o ${outputdir}/inter.txt \
     -q 1 ${outputdir}/merged_nodups.txt
+
 perl ${juiceDir}/scripts/statistics.pl \
     -s ${site_file} \
     -l ${ligation} \
@@ -124,6 +125,7 @@ perl ${juiceDir}/scripts/statistics.pl \
 
 #collect collisions and dedup
 awk -f ${juiceDir}/scripts/collisions.awk ${outputdir}/abnormal.sam > ${outputdir}/collisions.txt
+
 gawk -v fname=${outputdir}/collisions.txt \
      -f ${juiceDir}/scripts/collisions_dedup_rearrange_cols.awk ${outputdir}/collisions.txt |\
       sort -k3,3n -k4,4n -k10,10n -k11,11n -k17,17n -k18,18n -k24,24n -k25,25n -k31,31n -k32,32n |\

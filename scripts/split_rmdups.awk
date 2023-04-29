@@ -35,15 +35,15 @@ BEGIN{
 	if (p1 != $1 || p2 != $2 || p4 != $4 || p5 != $5 || p8 != $8) {
 	    sname = sprintf("%s_msplit%04d_", groupname, name);
 	    sscriptname = sprintf("%s/.%s.slurm", debugdir, sname);
-	    if (justexact) {printf("#!/bin/bash -l \n#SBATCH --nodes=1 --exclusive --partition=amd --time=96:00:00 --account=las --qos=las \n#SBATCH -o %s/dup-split-%s.out \n#SBATCH -e %s/dup-split-%s.err \n#SBATCH -J %s_msplit0 \ndate;awk -f %s/scripts/dups.awk -v nowobble=1 -v name=%s/%s %s/split%04d; \necho Reads:%s \ndate \n", debugdir, name, debugdir, name, groupname, juicedir, dir, sname, dir, name, tot) > sscriptname;}
-	    else {printf("#!/bin/bash -l \n#SBATCH --nodes=1 --exclusive --partition=amd --time=96:00:00 --account=las --qos=las \n#SBATCH -o %s/dup-split-%s.out \n#SBATCH -e %s/dup-split-%s.err \n#SBATCH -J %s_msplit0 \n#SBATCH -t 96:00:00 \ndate;awk -f %s/scripts/dups.awk -v name=%s/%s %s/split%04d; \necho Reads:%s \ndate \n", debugdir, name, debugdir, name, groupname, juicedir, dir, sname, dir, name, tot) > sscriptname;
+	    if (justexact) {printf("awk -f %s/scripts/dups.awk -v nowobble=1 -v name=%s/%s %s/split%04d;\necho Reads:%s\n",  juicedir, dir, sname, dir, name, tot) > sscriptname;
+        }
+	    else {printf("awk -f %s/scripts/dups.awk -v name=%s/%s %s/split%04d; \necho Reads:%s \n", juicedir, dir, sname, dir, name, tot) > sscriptname;
 	    }
-	    sysstring = sprintf("sbatch %s", sscriptname);
+	    sysstring = sprintf("cat %s", sscriptname);
 	    system(sysstring);
 	    outname = sprintf("%s/split%04d", dir, name);
 	    close(outname);
 	    close(sscriptname);
-	    
 	    name++;
 	    tot=0;
 	}
@@ -57,40 +57,29 @@ END {
     sname = sprintf("%s_msplit%04d_", groupname, name);
     sscriptname = sprintf("%s/.%s.slurm", debugdir, sname);
     if (justexact) {
-	printf("#!/bin/bash -l \n#SBATCH --nodes=1 --exclusive --partition=amd --time=96:00:00 --account=las --qos=las \n#SBATCH -o %s/dup-split-%s.out \n#SBATCH -e %s/dup-split-%s.err \n#SBATCH -J %s_msplit0 \ndate;awk -f %s/scripts/dups.awk -v nowobble=1 -v name=%s/%s %s/split%04d; \necho Reads:%s \ndate \n", debugdir, name, debugdir, name, groupname, juicedir, dir, sname, dir, name, tot) > sscriptname;
+	printf("awk -f %s/scripts/dups.awk -v nowobble=1 -v name=%s/%s %s/split%04d; \necho Reads:%s", juicedir, dir, sname, dir, name, tot) > sscriptname;
     }
     else {
-	printf("#!/bin/bash -l \n#SBATCH --nodes=1 --exclusive --partition=amd --time=96:00:00 --account=las --qos=las \n#SBATCH -o %s/dup-split-%s.out \n#SBATCH -e %s/dup-split-%s.err \n#SBATCH -J %s_msplit0 \ndate;awk -f %s/scripts/dups.awk -v name=%s/%s %s/split%04d; \necho Reads:%s \ndate \n", debugdir, name, debugdir, name, groupname, juicedir, dir, sname, dir, name, tot) > sscriptname;
+	printf("awk -f %s/scripts/dups.awk -v name=%s/%s %s/split%04d; \necho Reads:%s \n", juicedir, dir, sname, dir, name, tot) > sscriptname;
     }
-    sysstring = sprintf("sbatch %s", sscriptname);
+    sysstring = sprintf("cat %s", sscriptname);
     system(sysstring);
     close(sscriptname);
-
     sscriptname = sprintf("%s/.%s_msplit.slurm", debugdir, groupname);
-    printf("#!/bin/bash -l \n#SBATCH --nodes=1 --exclusive --partition=amd --time=96:00:00 --account=las --qos=las \n#SBATCH -o %s/dup-merge.out \n#SBATCH -e %s/dup-merge.err \n#SBATCH -J %s_msplit0 \n#SBATCH -d singleton \ndate; \necho \"\"; cat %s/%s_msplit*_optdups.txt > %s/opt_dups.txt;cat %s/%s_msplit*_dups.txt > %s/dups.txt;cat %s/%s_msplit*_merged_nodups.txt > %s/merged_nodups.txt; \ndate \n", debugdir, debugdir, groupname, dir, groupname, dir, dir, groupname, dir, dir, groupname, dir) > sscriptname;
-    sysstring = sprintf("sbatch %s", sscriptname);
+    printf("\necho \"\"; cat %s/%s_msplit*_optdups.txt > %s/opt_dups.txt;cat %s/%s_msplit*_dups.txt > %s/dups.txt;cat %s/%s_msplit*_merged_nodups.txt > %s/merged_nodups.txt; \ndate \n", dir, groupname, dir, dir, groupname, dir, dir, groupname, dir) > sscriptname;
+    sysstring = sprintf("cat %s", sscriptname);
     system(sysstring);
     close(sscriptname);
-
-#	sscriptname = sprintf("%s/.%s_rmsplit.slurm", debugdir, groupname);
-#	printf("#!/bin/bash -l \n#SBATCH -o %s/dup-rm.out \n#SBATCH -e %s/dup-rm.err \n#SBATCH -p %s \n#SBATCH -J %s_msplit0 \n#SBATCH -d singleton \n#SBATCH -t 96:00:00 \n#SBATCH -c 1 \n#SBATCH --ntasks=1 \ndate; \nrm %s/*_msplit*_optdups.txt; rm %s/*_msplit*_dups.txt; rm %s/*_msplit*_merged_nodups.txt;rm %s/split*; \ndate \n", debugdir, debugdir, queue, groupname, dir, dir, dir, dir) > sscriptname;
-#	sysstring = sprintf("sbatch %s", sscriptname);
-#	system(sysstring);
-#	close(sscriptname);
-
     sscriptname = sprintf("%s/.%s_finalize.slurm", debugdir, groupname);
-    printf("#!/bin/bash -l \n#SBATCH --nodes=1 --exclusive --partition=amd --time=96:00:00 --account=las --qos=las \n#SBATCH -o %s/dup-guard-trigger.out \n#SBATCH -e %s/dup-guard-trigger.err \n#SBATCH -J %s_msplit0 \n#SBATCH -d singleton \necho %s %s %s %s; \nsqueue -u %s; \ndate \n", debugdir, debugdir, queue, groupname, topDir, site, genomeID, genomePath, user, user) > sscriptname;
-    sysstring = sprintf("sbatch %s", sscriptname);
+    printf("echo %s %s %s %s; \nsqueue -u %s; \ndate \n", topDir, site, genomeID, genomePath, user) > sscriptname;
+    sysstring = sprintf("cat %s", sscriptname);
     system(sysstring);
-    (sysstring | getline maildupid);
-    var = gensub("[^0-9]", "", "g", maildupid);
-    sysstring = sprintf("scontrol update JobID=%s dependency=afterany:%s", guardjid, var);
+    sysstring = sprintf("echo JobID=NONE dependency=afterany:NONE");
     system(sysstring);
     close(sscriptname);
-    
     sscriptname = sprintf("%s/.%s_mail.slurm", debugdir, groupname);
-    printf("#!/bin/bash -l \n#SBATCH --nodes=1 --exclusive --partition=amd --time=96:00:00 --account=las --qos=las \n#SBATCH -o %s/dup-mail.out \n#SBATCH -e %s/dup-mail.err \n#SBATCH -J %s_msplit0 \n#SBATCH -d singleton \n#SBATCH -t 96:00:00 \ndate; \necho %s %s %s %s | mail -r arnstrm@gmail.com -s \"Juicer pipeline finished successfully @ Voltron\" -t %s@hi-c.io; \ndate \n", debugdir, debugdir, groupname, topDir, site, genomeID, genomePath, user) > sscriptname;
-    sysstring = sprintf("sbatch %s", sscriptname);
+    printf("echo %s %s %s %s | mail -r arnstrm@gmail.com -s \"Juicer pipeline finished successfully @ Voltron\" -t %s@hi-c.io;\n", topDir, site, genomeID, genomePath, user) > sscriptname;
+    sysstring = sprintf("cat %s", sscriptname);
     system(sysstring);
     close(sscriptname);
 }
