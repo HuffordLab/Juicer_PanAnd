@@ -1,62 +1,73 @@
 #!/bin/bash
+module load bwa
+module load openjdk
+module load bioawk
 # setting up variables
 read1=$1
 read2=$2
 refSeq=$3
-ext="tdats"
-juiceDir="/ptmp/arnstrm/hic_mapping/hap1_test_run/juicerdir"
-topDir=${juiceDir}
-juicer_version=1.6.2
 
 threads=${SLURM_CPUS_ON_NODE}
 memory=$(free -g | awk 'NR==2{print $4"G"}')
-name=$(basename ${read1%%.*})
+
+juicer_version=1.6.2
+projectDir="/ptmp/arnstrm/hic_mapping/hap1_test_run"
+ext=$(basename ${projectDir})
 site="DpnII"
 ligation="GATCGATC"
-queue="amd"
-long_queue=${queue}
-headfile="${juiceDir}/debug/headers"
 groupname="a$(date +%s)"
 justexact=0
-
 genomeID="${ext}"
-genomePath=${juiceDir}/chrom.sizes
-
 splitsize=900000000000
+baseoutname=$(basename ${read1} |cut -f1 -d "_")
 
+
+# get scripts for the pipeline
+cd ${projectDir}
+git clone git@github.com:HuffordLab/Juicer_PanAnd.git
+mv Juicer_PanAnd juicerdir
+juiceDir="${projectDir}/juicerdir"
+
+# directory structure:
+mkdir -p ${juiceDir}/fastq
 mkdir -p ${juiceDir}/references
 mkdir -p ${juiceDir}/aligned
 mkdir -p ${juiceDir}/splits
 mkdir -p ${juiceDir}/debug
 mkdir -p ${juiceDir}/restriction_sites
 mkdir -p ${juiceDir}/HIC_tmp
-# restriction sites for the genome
-python ${juiceDir}/scripts/generate_site_positions.py DpnII ${refSeq%.*} ${refSeq}
-mv ${refSeq%.*}_${site}.txt ${juiceDir}/restriction_sites/
-site_file="${juiceDir}/restriction_sites/${refSeq%.*}_${site}.txt"
-
 
 outputdir="${juiceDir}/aligned"
 splitdir="${juiceDir}/splits"
 debugdir="${juiceDir}/debug"
 tmpdir="${juiceDir}/HIC_tmp"
 
-#need to change this to be more flexible
-baseoutname=$(basename ${read1} |cut -f1 -d "_")
+# files in right places
+ln -s ${read1} ${juiceDir}/fastq/
+ln -s ${read2} ${juiceDir}/fastq/
+ln -s ${refSeq} ${juiceDir}/references/
 
-# header script
-cat > head.sh << EOF
-module load bwa
-module load openjdk
-echo -e "Juicer version $juicer_version;" 
-echo -e "BWA: $(bwa 2>&1 | awk '$1 ~/Version/ {print $NF}')"
-echo -e "$threads threads; "
-java --version |head -n 1
-${juiceDir}/scripts/juicer_tools -V | head -n 1
-echo "$0 $@"
-EOF
-chmod + x head.sh
-head.sh > ${headfile}
+# chrom sizes file
+bioawk -c fastx '{print $name"\t"length($seq)}' ${refSeq} > ${juiceDir}/chrom.sizes
+genomePath=${juiceDir}/chrom.sizes
+
+# restriction sites for the genome
+python ${juiceDir}/scripts/generate_site_positions.py DpnII ${refSeq%.*} ${refSeq}
+mv ${refSeq%.*}_${site}.txt ${juiceDir}/restriction_sites/
+site_file="${juiceDir}/restriction_sites/${refSeq%.*}_${site}.txt"
+
+# genome index
+cd ${juiceDir}/references
+bwa index ${refSeq} && cd ${projectDir}
+
+# creating header file
+headfile="${juiceDir}/debug/headers"
+echo -e "Juicer version $juicer_version;"  > ${headfile}
+echo -e "BWA: $(bwa 2>&1 | awk '$1 ~/Version/ {print $NF}')" >> ${headfile}
+echo -e "$threads threads;\n${memory} memory" >> ${headfile}
+java --version |head -n 1 >> ${headfile}
+${juiceDir}/scripts/juicer_tools -V | head -n 1 >> ${headfile}
+echo -e "juicer.sh -d ${juicerDir} -s ${site} -p ${genomePath} -y ${site_file} -z ${refSeq} -C ${splitsize} -D ${juicerDir} -b ${ligation} -t ${threads}" >> ${headfile}
 
 # countLigations:
 num1=$(paste <(gunzip -c ${read1}) <(gunzip -c ${read2}) | awk '!((NR+2)%4)' | grep -cE ${ligation})
@@ -86,7 +97,7 @@ sort --parallel=${threads} \
 cp ${splitdir}/${ext}_${baseoutname}.sort.txt ${outputdir}/merged_sort.txt
 
 # split_rmdups
-awk -v groupname=${groupname} -v debugdir=${debugdir} -v topDir=${topDir} -v juicedir=${juiceDir} -v site=${site} -v genomeID=${genomeID} -v genomePath=${genomePath} -v justexact=0 -f ${juiceDir}/scripts/split_rmdups.awk ${outputdir}/merged_sort.txt
+awk -v groupname=${groupname} -v debugdir=${debugdir} -v juicedir=${juiceDir} -v site=${site} -v genomeID=${genomeID} -v genomePath=${genomePath} -v justexact=0 -f ${juiceDir}/scripts/split_rmdups.awk ${outputdir}/merged_sort.txt
 
 # prestats
 tail -n1 ${headfile} | awk '{printf"%-1000s\n", $0}' > ${outputdir}/inter.txt
@@ -109,10 +120,10 @@ perl ${juiceDir}/scripts/statistics.pl \
     -q 30 ${outputdir}/merged_nodups.txt
 
 #collect collisions and dedup
+cat $splitdir/*_abnorm.sam > $outputdir/abnormal.sam
+cat $splitdir/*_unmapped.sam > $outputdir/unmapped.sam
 awk -f ${juiceDir}/scripts/collisions.awk ${outputdir}/abnormal.sam > ${outputdir}/collisions.txt
-
-gawk -v fname=${outputdir}/collisions.txt \
-     -f ${juiceDir}/scripts/collisions_dedup_rearrange_cols.awk ${outputdir}/collisions.txt |\
+gawk -v fname=${outputdir}/collisions.txt -f ${juiceDir}/scripts/collisions_dedup_rearrange_cols.awk ${outputdir}/collisions.txt |\
       sort -k3,3n -k4,4n -k10,10n -k11,11n -k17,17n -k18,18n -k24,24n -k25,25n -k31,31n -k32,32n |\
       awk -v name=${outputdir} -f ${juiceDir}/scripts/collisions_dups.awk
 

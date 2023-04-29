@@ -71,14 +71,14 @@ END {
     system(sysstring);
     close(sscriptname);
     sscriptname = sprintf("%s/.%s_finalize.slurm", debugdir, groupname);
-    printf("echo %s %s %s %s;\n", topDir, site, genomeID, genomePath) > sscriptname;
+    printf("echo %s %s %s %s;\n", juiceDir, site, genomeID, genomePath) > sscriptname;
     sysstring = sprintf("cat %s", sscriptname);
     system(sysstring);
     sysstring = sprintf("echo JobID=NONE dependency=afterany:NONE");
     system(sysstring);
     close(sscriptname);
     sscriptname = sprintf("%s/.%s_mail.slurm", debugdir, groupname);
-    printf("echo %s %s %s %s\n", topDir, site, genomeID, genomePath) > sscriptname;
+    printf("echo %s %s %s %s\n", juiceDir, site, genomeID, genomePath) > sscriptname;
     sysstring = sprintf("cat %s", sscriptname);
     system(sysstring);
     close(sscriptname);
