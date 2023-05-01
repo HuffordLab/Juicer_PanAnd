@@ -1,0 +1,13 @@
+name: 3DDNA
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - lastz
+  - python=2.7.15
+  - matplotlib
+  - java-jdk
+  - parallel
+  - scipy
+  - numpy
