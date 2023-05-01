@@ -10,7 +10,7 @@ Following programs are required:
 4. `pigz`
 
 
-## I Setting up project
+## Step 1. Setting up project
 
 #### 1. Input variables
 
@@ -76,9 +76,9 @@ ln -s ${refSeq} ${projectDir}/references/
 ```
 
 
-## II Preliminary files
+## Step 2. Preliminary files
 
-Juicer requries genome index files, restriction sites, and scaffold sizes  for the input genome.
+Juicer requries genome index (BWA), restriction sites, and scaffold sizes  for the input genome. While the scaffold file size generation is fast, the other 2 files need considerable time depending on your genome size.
 
 ```bash
 # chrom sizes file
@@ -94,24 +94,37 @@ site_file="${projectDir}/restriction_sites/$(basename ${refSeq%.*})_${site}.txt"
 ```
 
 ```bash
-# genome index
+# bwa genome index
 cd ${projectDir}/references
 bwa index ${refSeq} && cd ${projectDir}
 refSeq="${projectDir}/references/$(basename ${refSeq})"
 ```
 
 
-## III Capture stats
+## Step 3. Collect run metadata
+
+Some information regarding the versions of programs is needed for the later summary stats files. Juicer captures the command you ran and saves it in the file along with the versions of various programs. We are going to simulate the same behaviour using the below commands. This is optional and is not needed for the generating the output file.
+
 
 ```bash
 # creating header file
 headfile="${projectDir}/debug/headers"
-echo -e "Juicer version $juicer_version;"  > ${headfile}
-echo -e "BWA: $(bwa 2>&1 | awk '$1 ~/Version/ {print $NF}')" >> ${headfile}
-echo -e "$threads threads;\n${memory} memory" >> ${headfile}
+echo -en "Juicer version $juicer_version;"  > ${headfile}
+echo -en "BWA: $(bwa 2>&1 | awk '$1 ~/Version/ {print $NF}')" >> ${headfile}
+echo -en "$threads threads;\n${memory} memory" >> ${headfile}
 java --version | head -n 1 >> ${headfile}
 ${juiceDir}/scripts/juicer_tools -V | head -n 1 >> ${headfile}
-echo -e "juicer.sh -d ${projectDir} -s ${site} -p ${genomePath} -y ${site_file} -z ${refSeq} -D ${juicerDir} -b ${ligation} -t ${threads}" >> ${headfile}
+cat >> ${headfile} <<- EOF
+juicer.sh \
+-d ${projectDir} \
+-s ${site} \
+-p ${genomePath} \
+-y ${site_file} \
+-z ${refSeq} \
+-D ${juicerDir} \
+-b ${ligation} \
+-t ${threads}
+EOF
 ```
 
 ```bash
@@ -122,9 +135,9 @@ echo -en "${num1} " > ${splitdir}/${ext}_${baseoutname}_norm.txt.res.txt
 echo -e "${num2}" > ${splitdir}/${ext}_${baseoutname}_linecount.txt
 ```
 
-## IV Processing
+## Step 4. Processing
 
-### BWA mapping
+### bwa mapping
 
 This probably takes a long time. Depening on how many CPUs you have and the memory. If possible, run this separately as a slurm job.
 
@@ -140,7 +153,7 @@ Intel(R) Xeon(R) Gold 6140 CPU @ 2.30GHz
 ```
  
 
-### chimera_blacklist
+### blacklist chimeras
 
 ```bash
 awk -v "fname1"=${splitdir}/${ext}_${baseoutname}_norm.txt -v "fname2"=${splitdir}/${ext}_${baseoutname}_abnorm.sam -v "fname3"=${splitdir}/${ext}_${baseoutname}_unmapped.sam -f ${juiceDir}/scripts/chimeric_blacklist.awk ${splitdir}/${ext}_${baseoutname}.sam
@@ -152,7 +165,7 @@ awk -v "fname1"=${splitdir}/${ext}_${baseoutname}_norm.txt -v "fname2"=${splitdi
 perl ${juiceDir}/scripts/fragment.pl ${splitdir}/${ext}_${baseoutname}_norm.txt ${splitdir}/${ext}_${baseoutname}.frag.txt ${site_file}
 ```
 
-### Sort
+### sort fragments
 
 sort by chr, frag, strand, and position
 
@@ -163,20 +176,21 @@ sort --parallel=${threads} \
      --key=2,2d --key=6,6d --key=4,4n --key=8,8n --key=1,1n --key=5,5n --key=3,3n ${splitdir}/${ext}_${baseoutname}.frag.txt > ${splitdir}/${ext}_${baseoutname}.sort.txt
 ```
 
-### fragmerge
+### merge fragments
 
 ```bash
 cp ${splitdir}/${ext}_${baseoutname}.sort.txt ${outputdir}/merged_sort.txt
 ```
 
-### split_rmdups
+### remove duplicates
 
 ```bash
-awk -v groupname=${groupname} -v debugdir=${debugdir} -v juicedir=${juiceDir} -v site=${site} -v genomeID=${genomeID} -v genomePath=${genomePath} -v justexact=0 -f ${juiceDir}/scripts/split_rmdups.awk ${outputdir}/merged_sort.txt
+awk -v dir=${projectDir} -v groupname=${groupname} -v debugdir=${debugdir} -v juicedir=${juiceDir} -v site=${site} -v genomeID=${genomeID} -v genomePath=${genomePath} -v justexact=0 -f ${juiceDir}/scripts/split_rmdups.awk ${outputdir}/merged_sort.txt > cmds.sh
+chmod +x cmds.sh
+./cmds.sh
 ```
-
-## V Post analyses stats
-
+If your goal is using the HiC data for geneome assembly, you can stop here and use 
+## Step 5. Post analyses stats
 
 ```bash
 cat ${headfile} > ${outputdir}/inter.txt
@@ -199,7 +213,7 @@ perl ${juiceDir}/scripts/statistics.pl \
     -q 30 ${outputdir}/merged_nodups.txt
 ```
 
-## VI Generate HiC files
+## Step 6. Generate HiC files
 
 ```bash
 ${juiceDir}/scripts/juicer_tools pre \
@@ -214,7 +228,7 @@ ${juiceDir}/scripts/juicer_tools pre \
     -q 30 ${outputdir}/merged_nodups.txt ${outputdir}/inter_30.hic ${genomePath}
 ```
 
-## VII Other (optional)
+## Step 7. Other (optional)
 
 Some steps that are in Juicer scripts, if you need them to be run. For genome assemblies, we just need the `merged_nodups.txt` file.
 
