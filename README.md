@@ -191,6 +191,8 @@ chmod +x cmds.sh
 ```
 If your goal is using the HiC data for geneome assembly, you can stop here and use `merged_nodups.txt` file with `3d-DNA` (scaffolding). However, you may want to check your data for few key metrics to ensure you have HiC data suffcient for scaffolding.
 
+The page [scaffolding_3dDNA.md](scaffolding_3dDNA.md) details how to run 3D-DNA for scaffolding a draft (contig) assembly.
+
 ## Step 5. Post analyses stats (recommended)
 
 ```bash
