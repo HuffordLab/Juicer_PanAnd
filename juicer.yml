@@ -1,13 +1,17 @@
-name: 3DDNA
+name: juicer
 channels:
   - conda-forge
   - bioconda
   - defaults
 dependencies:
+  - bwa
+  - samtools
+  - bioawk
   - lastz
   - python=2.7.15
   - matplotlib
   - java-jdk
   - parallel
+  - pigz
   - scipy
   - numpy

@@ -2,7 +2,7 @@
 
 Request an interactive node, connected via `sleep` or `tmux` so that you don't lose progress when disconnected.
 
-Following programs are required:
+Following programs are required (can be installed via `conda`, see instructions [below](README.md#3-scripts-folder)):
 
 1. `bwa`
 2. `samtools`
@@ -34,9 +34,20 @@ ligation="GATCGATC"
 groupname="a$(date +%s)"
 justexact=0
 genomeID="${ext}"
-splitsize=900000000000
 baseoutname=$(basename ${read1} |cut -f1 -d "_")
 ```
+ You can use other options for `site` and `ligation` depending on your experiment. The official Juicer supports following options:
+
+ | Site    | Ligation                                                                                                                                                                                                                                                     |
+|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| HindIII | "AAGCTAGCTT"                                                                                                                                                                                                                                                  |
+| MseI    | "TTATAA"                                                                                                                                                                                                                                                      |
+| DpnII   | "GATCGATC"                                                                                                                                                                                                                                                    |
+| MboI    | "GATCGATC"                                                                                                                                                                                                                                                    |
+| NcoI    | "CCATGCATGG"                                                                                                                                                                                                                                                  |
+| Arima   | "'(GAATAATC\|GAATACTC\|GAATAGTC\|GAATATTC\|GAATGATC\|GACTAATC\|GACTACTC\|GACTAGTC\|GACTATTC\|GACTGATC\|GAGTAATC\|GAGTACTC\|GAGTAGTC\|GAGTATTC\|GAGTGATC\|GATCAATC\|GATCACTC\|GATCAGTC\|GATCATTC\|GATCGATC\|GATTAATC\|GATTACTC\|GATTAGTC\|GATTATTC\|GATTGATC)'" |
+| none    | "XXXX"                                                                                                                                                                                                                                                        |
+
 
 #### 3. Scripts folder
 
@@ -47,6 +58,9 @@ cd ${projectDir}
 git clone git@github.com:HuffordLab/Juicer_PanAnd.git
 mv Juicer_PanAnd juicerdir
 juiceDir="${projectDir}/juicerdir"
+cd ${juiceDir}
+conda env create -f juicer.yml
+conda activate juicer
 ```
 
 #### 4. Directory structure:
@@ -71,8 +85,6 @@ tmpdir="${projectDir}/HIC_tmp"
 ln -s ${read1} ${projectDir}/fastq/
 ln -s ${read2} ${projectDir}/fastq/
 ln -s ${refSeq} ${projectDir}/references/
-# touch ${splitdir}/${baseoutname}_R1.fastq000.fastq
-# touch ${splitdir}/${baseoutname}_R2.fastq000.fastq
 ```
 
 
@@ -155,6 +167,8 @@ Intel(R) Xeon(R) Gold 6140 CPU @ 2.30GHz
 
 ### blacklist chimeras
 
+This step will also take some time to finish as it is single threaded job and mostly disk I/O intensive.
+
 ```bash
 awk -v "fname1"=${splitdir}/${ext}_${baseoutname}_norm.txt -v "fname2"=${splitdir}/${ext}_${baseoutname}_abnorm.sam -v "fname3"=${splitdir}/${ext}_${baseoutname}_unmapped.sam -f ${juiceDir}/scripts/chimeric_blacklist.awk ${splitdir}/${ext}_${baseoutname}.sam
 ```
@@ -167,7 +181,7 @@ perl ${juiceDir}/scripts/fragment.pl ${splitdir}/${ext}_${baseoutname}_norm.txt 
 
 ### sort fragments
 
-sort by chr, frag, strand, and position
+This will sort by chr, frag, strand, and position (in that order), and it will take some time to finish (depending on your systemps resource availablity)
 
 ```bash
 sort --parallel=${threads} \
@@ -184,11 +198,16 @@ cp ${splitdir}/${ext}_${baseoutname}.sort.txt ${outputdir}/merged_sort.txt
 
 ### remove duplicates
 
+We break this in to two parts. First we run the modified `split_rmdups.awk` to split the `merged_sort.txt` file, and rather than submitting them as individual `slurm` job, we run them sequentially (does not take much time).
 ```bash
+# generate commands and write cmds.sh file
 awk -v dir=${projectDir} -v groupname=${groupname} -v debugdir=${debugdir} -v juicedir=${juiceDir} -v site=${site} -v genomeID=${genomeID} -v genomePath=${genomePath} -v justexact=0 -f ${juiceDir}/scripts/split_rmdups.awk ${outputdir}/merged_sort.txt > cmds.sh
+# change permissions
 chmod +x cmds.sh
+# run
 ./cmds.sh
 ```
+
 If your goal is using the HiC data for geneome assembly, you can stop here and use `merged_nodups.txt` file with `3d-DNA` (scaffolding). However, you may want to check your data for few key metrics to ensure you have HiC data suffcient for scaffolding.
 
 The page [scaffolding_3dDNA.md](scaffolding_3dDNA.md) details how to run 3D-DNA for scaffolding a draft (contig) assembly.
