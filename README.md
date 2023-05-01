@@ -189,8 +189,9 @@ awk -v dir=${projectDir} -v groupname=${groupname} -v debugdir=${debugdir} -v ju
 chmod +x cmds.sh
 ./cmds.sh
 ```
-If your goal is using the HiC data for geneome assembly, you can stop here and use 
-## Step 5. Post analyses stats
+If your goal is using the HiC data for geneome assembly, you can stop here and use `merged_nodups.txt` file with `3d-DNA` (scaffolding). However, you may want to check your data for few key metrics to ensure you have HiC data suffcient for scaffolding.
+
+## Step 5. Post analyses stats (recommended)
 
 ```bash
 cat ${headfile} > ${outputdir}/inter.txt
@@ -213,7 +214,7 @@ perl ${juiceDir}/scripts/statistics.pl \
     -q 30 ${outputdir}/merged_nodups.txt
 ```
 
-## Step 6. Generate HiC files
+## Step 6. Generate HiC files (optional)
 
 ```bash
 ${juiceDir}/scripts/juicer_tools pre \
